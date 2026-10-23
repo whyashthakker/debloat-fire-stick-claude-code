@@ -1,0 +1,46 @@
+# Amazon Fire TV Stick 3rd gen (AFTSSS, codename sheldonp), Fire OS 7.7.1.7 / Android 9, build PS7717.5741N
+# Based on toshiba-fire-tv-aftha004 (same build), plus the safe telemetry entries from insignia-ns55f301na25.
+#
+# Apply:   TV_HOST=<stick ip> tools/disable.sh examples/amazon-fire-tv-stick-3rd-gen-aftsss/debloat.txt
+# Undo:    TV_HOST=<stick ip> tools/restore.sh examples/amazon-fire-tv-stick-3rd-gen-aftsss/debloat.txt com.amazon.tv.launcher
+#
+# Kept on purpose: com.amazon.tv.oobe (on this stick it owns the saved Wi-Fi network, like setupwraith on
+# Google TV: disabling it drops Wi-Fi), DIAL/whisperplay (YouTube casting and tools/firetv.py), Alexa,
+# OTA updates, Appstore, remote/Bluetooth services, the stock launcher.
+
+# Batch 1: ads, telemetry, tutorials
+com.amazon.shoptv.client
+com.amazon.shoptv.firetv.client
+com.amazon.tv.acr                      # Automatic Content Recognition
+com.amazon.hybridadidservice           # advertising ID
+com.amazon.sneakpeek
+com.amazon.tv.fw.metrics
+com.amazon.neo.minerva
+com.amazon.neo.minerva.logcat
+com.amazon.wirelessmetrics.service
+com.amazon.perfcollection
+com.amazon.perfc
+com.amazon.dp.logger
+# com.amazon.device.logmanager   # protected on this build
+# com.amazon.device.crashmanager   # protected on this build
+# com.fireos.usagestats.proxy   # protected on this build
+com.amazon.storm.lightning.tutorial
+com.amazon.tmm.tutorial
+com.amazon.tv.releasenotes
+
+# Batch 2: Amazon apps not used
+com.amazon.bueller.music               # Amazon Music
+com.amazon.bueller.photos              # Amazon Photos
+com.amazon.minitv.android.app          # Amazon MiniTV
+com.amazon.naatyam
+com.amazon.gamehub                     # Luna / GameHub
+com.amazon.tahoe                       # Amazon Kids
+com.amazon.cloud9                      # Silk browser ("internet" tile)
+com.amazon.tv.website_launcher
+com.amazon.ods.kindleconnect
+com.amazon.cast.sink                   # Miracast screen mirroring (YouTube casting is DIAL, kept)
+
+# Batch 3: this owner's choice (uses UniTV, YouTube, Spotify)
+com.netflix.ninja                      # Netflix
+com.fifa.plus.android                  # FIFA+
+com.amazon.firebat                     # Prime Video

@@ -3,6 +3,7 @@ package com.firehome;
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
@@ -19,7 +20,10 @@ import android.widget.TextClock;
 import android.widget.TextView;
 import android.widget.Toast;
 
-/** A home screen with one thing on it, YouTube. HomeWatcher brings it up whenever Amazon's home is started. */
+/**
+ * A home screen with a few app tiles, YouTube by default. HomeWatcher brings it up whenever Amazon's home is
+ * started. install.sh sets the tiles with `am start ... --es apps <pkg,pkg,...>`, kept across restarts.
+ */
 public class HomeActivity extends Activity {
     static final String YOUTUBE = "com.amazon.firetv.youtube";
     static final String AMAZON_HOME = "com.amazon.tv.launcher";
@@ -27,7 +31,7 @@ public class HomeActivity extends Activity {
     private static final long AMAZON_PAUSE_MS = 10 * 60 * 1000L;
 
     private float dp;
-    private View youtube;
+    private View first;
 
     @Override
     protected void onCreate(Bundle state) {
@@ -52,8 +56,21 @@ public class HomeActivity extends Activity {
         corner.addView(date);
         root.addView(corner, at(Gravity.TOP | Gravity.START, 56, 40));
 
-        youtube = tile();
-        root.addView(youtube, new FrameLayout.LayoutParams(px(400), px(225), Gravity.CENTER));
+        String[] apps = apps();
+        // one tile is 400dp wide as before; more share the ~880dp a 1080p TV leaves between the margins
+        int width = Math.min(400, 880 / apps.length - 24);
+        LinearLayout row = new LinearLayout(this);
+        for (String app : apps) {
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(px(width), px(width * 9 / 16));
+            lp.setMargins(px(12), 0, px(12), 0);
+            View tile = tile(app);
+            row.addView(tile, lp);
+            if (first == null) {
+                first = tile;
+            }
+        }
+        root.addView(row, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER));
 
         LinearLayout bottom = new LinearLayout(this);
         bottom.addView(pill("Settings", v -> openSettings()));
@@ -67,7 +84,26 @@ public class HomeActivity extends Activity {
     protected void onResume() {
         super.onResume();
         HomeWatcher.pause(0);   // back from Settings or Amazon's home: Home brings this screen up again
-        youtube.requestFocus();
+        first.requestFocus();
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        if (intent.getStringExtra("apps") != null) {
+            setIntent(intent);
+            recreate();
+        }
+    }
+
+    /** The tiles' packages: from the "apps" extra when install.sh sends one, else as last saved. */
+    private String[] apps() {
+        SharedPreferences prefs = getSharedPreferences("home", MODE_PRIVATE);
+        String sent = getIntent().getStringExtra("apps");
+        if (sent != null && !sent.trim().isEmpty()) {
+            prefs.edit().putString("apps", sent.trim()).apply();
+        }
+        return prefs.getString("apps", YOUTUBE).split("\\s*,\\s*");
     }
 
     @Override
@@ -75,7 +111,7 @@ public class HomeActivity extends Activity {
         // this is Home: Back has nowhere to go
     }
 
-    private View tile() {
+    private View tile(String app) {
         ImageView art = new ImageView(this);
         GradientDrawable card = new GradientDrawable();
         card.setColor(0xFF161616);
@@ -84,23 +120,23 @@ public class HomeActivity extends Activity {
         art.setClipToOutline(true);
         PackageManager pm = getPackageManager();
         try {
-            Drawable banner = pm.getApplicationBanner(YOUTUBE);
+            Drawable banner = pm.getApplicationBanner(app);
             if (banner != null) {
                 art.setScaleType(ImageView.ScaleType.CENTER_CROP);
                 art.setImageDrawable(banner);
             } else {
                 art.setScaleType(ImageView.ScaleType.FIT_CENTER);
                 art.setPadding(px(60), px(40), px(60), px(40));
-                art.setImageDrawable(pm.getApplicationIcon(YOUTUBE));
+                art.setImageDrawable(pm.getApplicationIcon(app));
             }
         } catch (PackageManager.NameNotFoundException e) {
-            // YouTube is not installed: an empty card, and the click says so
+            // not installed: an empty card, and the click says so
         }
 
         // YouTube's banner is white, so a white focus ring would vanish into it: focus lifts the tile, and the
-        // tile dims while a button below has focus
+        // other tiles dim
         art.setFocusable(true);
-        art.setOnClickListener(v -> openYouTube());
+        art.setOnClickListener(v -> open(app));
         art.setOnFocusChangeListener((v, focused) -> {
             float scale = focused ? 1.06f : 1f;
             v.animate().scaleX(scale).scaleY(scale).alpha(focused ? 1f : 0.45f).setDuration(150).start();
@@ -130,13 +166,13 @@ public class HomeActivity extends Activity {
         return pill;
     }
 
-    private void openYouTube() {
+    private void open(String app) {
         PackageManager pm = getPackageManager();
-        Intent intent = pm.getLeanbackLaunchIntentForPackage(YOUTUBE);
+        Intent intent = pm.getLeanbackLaunchIntentForPackage(app);
         if (intent == null) {
-            intent = pm.getLaunchIntentForPackage(YOUTUBE);
+            intent = pm.getLaunchIntentForPackage(app);
         }
-        launch(intent, "YouTube isn't installed. Get it from the Appstore under Fire TV home.");
+        launch(intent, app + " isn't installed or is switched off. Get it from the Appstore under Fire TV home.");
     }
 
     private void openSettings() {
