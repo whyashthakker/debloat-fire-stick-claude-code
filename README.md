@@ -2,7 +2,7 @@
 
 Clean up an Amazon Fire TV Stick over Wi-Fi with [Claude Code](https://claude.com/claude-code), even when the
 physical remote is lost: a remote in your browser, backup-first debloat scripts with a one-line undo, and a
-YouTube-only home screen in place of Amazon's ad-filled one. Built and tested on a Fire TV Stick 2nd gen
+home screen with just your apps in place of Amazon's ad-filled one. Built and tested on a Fire TV Stick 2nd gen
 (AFTT, Fire OS 5.2.9.5, 1 GB RAM) that had no remote at all.
 
 ## What's in here
@@ -13,7 +13,7 @@ YouTube-only home screen in place of Amazon's ad-filled one. Built and tested on
 | [`tools/firetv.py`](tools/firetv.py) | Pairs with the stick through the same local API Amazon's Fire TV phone app uses (a PIN shows on the TV) and presses keys, with no ADB and no remote. This is how you reach Developer options on a stick without a remote. |
 | [`tools/tv.py`](tools/tv.py) | Pure-Python ADB client (shell, batch, push, pull); works where macOS blocks the `adb` binary. |
 | [`tools/disable.sh`](tools/disable.sh), [`restore.sh`](tools/restore.sh) | Record each package's state, then switch the list off; restore replays the record. `HIDE=1` for Fire OS 5. |
-| [`firehome/`](firehome/) | A 17 KB YouTube-only home: clock, one YouTube tile, Settings, and a way back to Amazon's home. Comes up whenever Amazon's home is started. |
+| [`firehome/`](firehome/) | A 17 KB home with only your apps: clock, one tile per app (YouTube by default, `FIREHOME_APPS` to choose), Settings, and a way back to Amazon's home. Comes up whenever Amazon's home is started; tested on Fire OS 5 and 7. |
 | [`examples/`](examples/) | Debloat lists for four Fire TV devices. |
 
 ## Quick start
@@ -38,7 +38,7 @@ Fire TV > About, press OK seven times on the device name, then go back. Accept "
 ```bash
 tools/venv/bin/python -I tools/tv.py --probe                                    # model, Fire OS, Android
 HIDE=1 tools/disable.sh examples/amazon-fire-tv-stick-2nd-gen-aftt/debloat.txt   # back up, then switch off
-firehome/install.sh                                                             # YouTube-only home
+FIREHOME_APPS="com.amazon.firetv.youtube com.spotify.tv.android" firehome/install.sh   # home with just these apps
 ```
 
 Fire OS 5 allows one ADB connection at a time, so keep the remote on `--no-adb` while the scripts run. Fire OS
@@ -66,6 +66,11 @@ So on this firmware the debloat hid seven unused apps and sped up animations, wh
 Amazon's ads and telemetry stay installed. The home-screen swap is what makes the stick feel lighter: Amazon's
 home, its full-screen ads and sponsored tiles stop coming up. Newer Fire OS lets ADB disable much more.
 
+On Fire OS 7.7.1.7 (3rd-gen stick) `pm disable-user` works for most of Amazon's apps and `firehome` works the
+same way, except that Android holds a background app's start for up to 5 seconds after a Home press: Amazon's
+home shows for 3 to 5 seconds before `firehome` replaces it. `firehome/build.sh` also runs in Git Bash on Windows,
+with `JAVA_HOME` set to a JDK (Android Studio's `jbr` folder works).
+
 ## Fire TV lists
 
 | TV | OS |
@@ -74,6 +79,7 @@ home, its full-screen ads and sponsored tiles stop coming up. Newer Fire OS lets
 | Amazon Fire TV Stick 4K, 1st gen 2018 (AFTMM, mantis) | Fire OS 6.7.1.1 / Android 7.1 |
 | Insignia 55" F30 4K Fire TV (NS-55F301NA25, AFTDCT31, duckie) | Fire OS 7 / Android 9 |
 | Toshiba Fire TV (AFTHA004, hazel) | Fire OS 7 / Android 9 |
+| Amazon Fire TV Stick 3rd gen (AFTSSS, sheldonp) | Fire OS 7.7.1.7 / Android 9 |
 
 ## Safety and undo
 
